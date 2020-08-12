@@ -1,12 +1,12 @@
 # galcv
 
-### WARNING: Currently, the 'PS-scaling' option for the CMF_method parameter in getcv() is unavailable. This will be added soon.
+### WARNING: This package is still in its alpha stage
 
 This package provides predictions of cosmic variance for the high-z UV luminosity function (UVLF) of galaxies. The methods for this code are described in Trapp & Furlanetto (2020, in prep.).
 
 This package provides the relative cosmic variance of the UVLF for the following parameter ranges:
 
-#### Apparent rest-UV AB magnitude: 23 -> 34
+#### Apparent rest-UV AB magnitude: 22 -> 34
 
 #### Redshift: 5 -> 15
 
@@ -53,6 +53,7 @@ There is currently one user-facing function: **getcv()**. The rest of the functi
     -------------------------
     A Python list of cosmic variance values of the same length as the mag input
 
+---
 # Alternate Installation and Use Methods
 
 If 'pip' is not working, or you would prefer to run the code yourself, you may clone the github repo and run the \_\_init\_\_.py script (in the /galcv folder) in a python environment. You will then have access to the **getcv()** function.
@@ -65,3 +66,10 @@ If you would like to use the **getcv()** function in your script (without instal
 - At the beginning of your script, include the line:
 > from \_\_init\_\_ import *
 - You should then be able to use **getcv()** in that script.
+
+---
+# Links
+
+GitHub: https://github.com/adamtrapp/galcv
+
+PyPi: https://pypi.org/project/galcv/

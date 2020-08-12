@@ -213,7 +213,7 @@ def readcv(mag, area, z, zW, CMF_method, verbose=True):
     if CMF_method == 'nu-scaling':
         CMF_string = 'stdScale'
     elif CMF_method == 'PS-scaling':
-        SMF_string = 'PSfrac'
+        CMF_string = 'PSfrac'
 
     # Read in the file of fits
     THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))

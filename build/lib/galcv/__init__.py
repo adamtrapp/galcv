@@ -6,21 +6,14 @@ import numpy as np
 import pandas as pd
 import os
 
-# What are the parameters?
-
-# mag - magnitude(s) [apparent]
-# area - survey area [arcmin^2]
-# z - redshift
-# zW - redshift bin width
-
 # A dictionary of the parameters for which I have the exact interp files
-fitParams = dict(mag=np.array([23, 24, 25, 26, 27, 28, 29, 30, 31, 32]), z=np.array([5., 6., 7., 8., 9., 10., 11., 12., 13., 14., 15.]), zW=np.array([0.1, 0.15, 0.25, 0.5, 0.75, 1., 1.5, 2.]))
+fitParams = dict(mag=np.array([22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34]), z=np.array([5., 6., 7., 8., 9., 10., 11., 12., 13., 14., 15.]), zW=np.array([0.1, 0.15, 0.25, 0.5, 0.75, 1., 1.5, 2.]))
 
 # This is a tuple of int and float types to check inputs against
 intOrFloat = (int, np.int8, np.int16, np.int32, np.int64, float, np.float16, np.float32, np.float64)
 
 #How many decimal places to round the outputs to
-roundTo = 3
+roundTo = 4
 
 def getcv(mag, area, z, zW=1., CMF_method='nu-scaling', interpWarning=1):
     '''
@@ -220,7 +213,7 @@ def readcv(mag, area, z, zW, CMF_method, verbose=True):
     if CMF_method == 'nu-scaling':
         CMF_string = 'stdScale'
     elif CMF_method == 'PS-scaling':
-        SMF_string = 'PSfrac'
+        CMF_string = 'PSfrac'
 
     # Read in the file of fits
     THIS_FOLDER = os.path.dirname(os.path.abspath(__file__))

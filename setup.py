@@ -23,7 +23,7 @@ setuptools.setup(name=name,
       author_email='atrapp@astro.ucla.edu',
       license='MIT',
       packages=setuptools.find_packages(),
-      install_requires=['numpy','pandas'],
+      install_requires=['numpy','pandas','scipy'],
       python_requires='~=3.3',
       include_package_data=True,
       zip_safe=False)

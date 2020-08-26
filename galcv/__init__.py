@@ -5,6 +5,7 @@
 import numpy as np
 import pandas as pd
 import os
+from scipy import integrate
 
 # A dictionary of the parameters for which I have the exact interp files
 fitParams = dict(mag=np.array([22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34]), z=np.array([5., 6., 7., 8., 9., 10., 11., 12., 13., 14., 15.]), zW=np.array([0.1, 0.15, 0.25, 0.5, 0.75, 1., 1.5, 2.]))
@@ -15,20 +16,22 @@ intOrFloat = (int, np.int8, np.int16, np.int32, np.int64, float, np.float16, np.
 #How many decimal places to round the outputs to
 roundTo = 4
 
-def getcv(mag, area, z, zW=1., CMF_method='nu-scaling', interpWarning=1):
+def getcv(mag, area, z, zW=1., appOrAbs = 0, CMF_method='nu-scaling', interpWarning=1):
     '''
     This function returns relative cosmic variance results. This function is a wrapper function for formatting. The actual calculation happens in singlecv()
 
     Parameters
     -------------------------
     mag : int, float, list, or numpy.ndarray
-        The magnitude(s) to consider. This must be in APPARENT rest-UV (1500 - 2800 Angstroms) AB magnitude
+        The magnitude(s) to consider. This must be in rest-UV (1500 - 2800 Angstroms) AB magnitude (default apparent magnitude; see appOrAbs param)
     area : int or float
         The area of a survey in arcmin^2 (square survey pattern only)
     z : int or float
         The central redshift of the survey
     zW : int or float
         The width of the redshift bin the survey is considering. Default is 1.
+    absOrApp: int (0 or 1)
+        Whether the mag input(s) are in apparent magnitudes (0) or in absolute magnitudes (1)
     CMF_method: 'nu-scaling' or 'PS-scaling'
         The method used for generating the conditional mass function. See Trapp & Furlanetto (2020) for details.
     interpWarning: int or float
@@ -38,6 +41,10 @@ def getcv(mag, area, z, zW=1., CMF_method='nu-scaling', interpWarning=1):
     -------------------------
     A Python list of cosmic variance values of the same length as the mag input
     '''
+
+    #My code uses apparent magnitudes, so it they are given in absolute magnitudes, convert to apparent first
+    if appOrAbs:
+        mag = absToApp(Mabs=mag,z=z)
 
     # Check to make sure the keywords have the correct formats
     checkVars(mag=mag, area=area, z=z, zW=zW, CMF_method=CMF_method, interpWarning=interpWarning)
@@ -118,7 +125,7 @@ def singlecv(mag, area, z, zW, CMF_method, interpWarning):
                     zWs[i][j][k] = k_zW
                     zW_epcvs[i][j][k] = readcv(mag=i_mag, area=area, z=j_z, zW=k_zW, CMF_method=CMF_method, verbose=False)
         if np.any(np.isnan(zW_epcvs)):  # If any of the epcv values required are np.nan, can't do the interpolation
-            print('Magnitude {:.2f} is too bright for a cosmic variance interpolation estimate at this area, z, and zW'.format(mag))
+            print('Apparent magnitude {:.2f} is too bright for a cosmic variance interpolation estimate at this area, z, and zW'.format(mag))
             return np.nan
 
         # Now we interpolate between constant mag and z, but differing zW epcvs
@@ -238,7 +245,7 @@ def readcv(mag, area, z, zW, CMF_method, verbose=True):
         return 10**log10Eps(area, Psis[whichIndex], gammas[whichIndex], bs[whichIndex])
     else:
         if verbose:
-            print('magnitude {:.2f} is too bright to calculate cosmic variance.'.format(mag))
+            print('apparent magnitude {:.2f} is too bright to calculate cosmic variance.'.format(mag))
             i = 1
             while (mag + i) < max(mapps):  # Finding the brightest mag that has an estimate at this area
                 checkIdx = np.where(mapps == (mag + i))[0][0]
@@ -318,11 +325,11 @@ def checkVars(mag, area, z, zW, CMF_method, interpWarning):
         if any([not isinstance(a_mag, intOrFloat) for a_mag in mag]):
             raise Exception('All values in the list/array \'mag\' must be a int or float')
         elif any([not inRange(a_mag, magRange) for a_mag in mag]):
-            raise Exception('at least one mag value is outside of mag range: {}'.format(magRange))
+            raise Exception('at least one mag value is outside of apparent mag range: {}'.format(magRange))
 
     elif isinstance(mag, intOrFloat):
         if not inRange(mag, magRange):
-            raise Exception('mag value is outside of mag range: {}'.format(magRange))
+            raise Exception('mag value is outside of apparent mag range: {}'.format(magRange))
     else:
         raise Exception('\'mag\' must be a float, int, list, or numpy array')
 
@@ -371,3 +378,70 @@ def log10Eps(area, Psi, gamma, b):
         The parameters of the varepsiloncv fit
     '''
     return Psi * area**gamma + b
+
+
+def absToApp(Mabs='ER', z='ER'):
+    '''
+    This function converts absolute magnitude into apparent
+
+    Parameters
+    -------------------------
+    Mabs : int or float or array-like
+        absolute magnitudes
+    z : int or float
+        redshift
+    '''
+
+    DL_parsec = lum_dist(z=z)
+    # Convert to parsecs
+    DL_parsec = DL_parsec * 1.e6
+
+    mapp = Mabs
+    mapp = mapp + 5.0 * np.log10(DL_parsec / 10)
+    mapp = mapp - 2.5 * np.log10(1.0 + z)
+
+    return mapp
+
+def lum_dist(z='ER', **kwargs):
+    '''
+    This function returns the luminosity distance to some redshift
+
+    Parameters
+    -------------------------
+    z : int or float
+        redshift
+    '''
+    ans = comv_dist(z=z) * (1.0 + z)
+
+    return ans
+
+HPARAM = 0.678 #hubble constant today/100
+OMEGA0 = 0.308 #matter fraction today
+OMEGANU = 0.0 #radiation fraction today
+LAMBDA0 = 0.692 #dark energy fraction today
+SPEEDOFLIGHTMPCPERSEC = 9.71561e-15
+
+def comv_dist(z='ER', **kwargs):
+    '''
+    This function returns the comoving distance to some redshift
+
+    Parameters
+    -------------------------
+    z : int or float
+        redshift
+    '''
+
+    def wrapper_comv_dist(x):
+        # What is the hubble constant today in 1/s
+        Hnot = 100.0 * HPARAM * 3.24078e-20
+        Hofz = Hnot * np.sqrt(OMEGA0 * (1. + x)**3. + OMEGANU * (1. + x)**4. + LAMBDA0)
+        ansWR = SPEEDOFLIGHTMPCPERSEC / Hofz
+        return ansWR
+
+    ans, abserr = integrate.quad(wrapper_comv_dist, 0.0, z)
+
+    if abs(abserr / ans) > 1e-4:
+        print('Warning! Comoving distance calculation err is high')
+        print('err/value = ' + str(abs(abserr / ans)))
+
+    return ans

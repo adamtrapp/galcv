@@ -16,7 +16,7 @@ intOrFloat = (int, np.int8, np.int16, np.int32, np.int64, float, np.float16, np.
 #How many decimal places to round the outputs to
 roundTo = 4
 
-def getcv(mag, area, z, zW=1., appOrAbs = 0, CMF_method='nu-scaling', interpWarning=1):
+def getcv(mag, area, z, zW=1., appOrAbs='apparent', CMF_method='nu-scaling', interpWarning=1):
     '''
     This function returns relative cosmic variance results. This function is a wrapper function for formatting. The actual calculation happens in singlecv()
 
@@ -30,8 +30,8 @@ def getcv(mag, area, z, zW=1., appOrAbs = 0, CMF_method='nu-scaling', interpWarn
         The central redshift of the survey
     zW : int or float
         The width of the redshift bin the survey is considering. Default is 1.
-    absOrApp: int (0 or 1)
-        Whether the mag input(s) are in apparent magnitudes (0) or in absolute magnitudes (1)
+    absOrApp: 'apparent' or 'absolute'
+        Whether the mag input(s) are in apparent magnitudes or in absolute magnitudes
     CMF_method: 'nu-scaling' or 'PS-scaling'
         The method used for generating the conditional mass function. See Trapp & Furlanetto (2020) for details.
     interpWarning: int or float
@@ -43,11 +43,11 @@ def getcv(mag, area, z, zW=1., appOrAbs = 0, CMF_method='nu-scaling', interpWarn
     '''
 
     #My code uses apparent magnitudes, so it they are given in absolute magnitudes, convert to apparent first
-    if appOrAbs:
+    if appOrAbs == 'absolute':
         mag = absToApp(Mabs=mag,z=z)
 
     # Check to make sure the keywords have the correct formats
-    checkVars(mag=mag, area=area, z=z, zW=zW, CMF_method=CMF_method, interpWarning=interpWarning)
+    checkVars(mag=mag, area=area, z=z, zW=zW, appOrAbs=appOrAbs, CMF_method=CMF_method, interpWarning=interpWarning)
 
     # Now, if mag is just an int or float, return an int or float
     if isinstance(mag, intOrFloat):
@@ -313,7 +313,7 @@ def inRange(value, theRange):
         return False
 
 
-def checkVars(mag, area, z, zW, CMF_method, interpWarning):
+def checkVars(mag, area, z, zW, appOrAbs, CMF_method, interpWarning):
     # Check if the variables have the correct dtype and are in the correct ranges. If not, raise an exception.
     magRange = [min(fitParams['mag']), max(fitParams['mag'])]
     areaRange = [1, 3.16e4]
@@ -353,7 +353,11 @@ def checkVars(mag, area, z, zW, CMF_method, interpWarning):
             raise Exception('zW value outside of zW range: {}'.format(zWRange))
     else:
         raise Exception('zW must be a float or an int')
-
+    
+    # Now the appOrAbs variable
+    if type(appOrAbs) != str:
+        raise Exception('appOrAbs must be \'apparent\' or \'absolute\'')
+        
     # Now the CMF_method variable
     if type(CMF_method) != str:
         raise Exception('CMF_method must be \'nu-scaling\' or \'PS-scaling\'')

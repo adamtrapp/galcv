@@ -48,7 +48,7 @@ z : int or float
     The central redshift of the survey
 zW : int or float
     The width of the redshift bin the survey is considering. Default is 1.
-absOrApp: 'apparent' or 'absolute'
+appOrAbs: 'apparent' or 'absolute'
     Whether the mag input(s) are in apparent magnitudes or in absolute magnitudes
 CMF_method: 'nu-scaling' or 'PS-scaling'
     The method used for generating the conditional mass function. See Trapp & Furlanetto (2020) for details.

@@ -33,7 +33,7 @@ There is currently one user-facing function: `getcv()`. The rest of the function
 > [0.178, 0.208, 0.245]
 ```
 
-`getcv()` takes three required parameters (mag, area, z), and has three default parameters (zW, CMF_method, interpWarning). The following is the docstring for `getcv()` that explains the inputs and output:
+`getcv()` takes three required parameters (mag, area, z), and has four default parameters (zW, appOrAbs, CMF_method, interpWarning). The following is the docstring for `getcv()` that explains the inputs and output:
 
 ```
 This function returns relative cosmic variance results. This function is a wrapper function for formatting. The actual calculation happens in singlecv()
@@ -48,6 +48,8 @@ z : int or float
     The central redshift of the survey
 zW : int or float
     The width of the redshift bin the survey is considering. Default is 1.
+absOrApp: 'apparent' or 'absolute'
+    Whether the mag input(s) are in apparent magnitudes or in absolute magnitudes
 CMF_method: 'nu-scaling' or 'PS-scaling'
     The method used for generating the conditional mass function. See Trapp & Furlanetto (2020) for details.
 interpWarning: int or float

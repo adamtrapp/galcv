@@ -7,7 +7,7 @@ def readme():
         return f.read()
 
 setuptools.setup(name=name,
-      version='1.0.0-alpha.5',
+      version='1.0.0-alpha.8',
       description='A simple calculator for cosmic variance',
       long_description=readme(),
       long_description_content_type="text/markdown",

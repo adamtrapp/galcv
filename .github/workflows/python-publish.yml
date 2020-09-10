@@ -1,6 +1,9 @@
 name: Publish Python 🐍 distributions 📦 to PyPI and TestPyPI
 
-on: push
+on:
+  push:
+  release:
+    types: [published]
 
 jobs:
   deploy:
@@ -25,7 +28,7 @@ jobs:
         password: ${{ secrets.test_pypi_password }}
         repository_url: https://test.pypi.org/legacy/
     - name: Publish distribution 📦 to PyPI
-      if: github.event_name == 'release' && github.event.action == 'created'
+      if: github.event_name == 'release'
       uses: pypa/gh-action-pypi-publish@master
       with:
         password: ${{ secrets.pypi_password }}

@@ -1,10 +1,8 @@
 # galcv
 
-### WARNING: This package is still in its alpha stage
-
 This package provides predictions of cosmic variance for the high-z UV luminosity function (UVLF) of galaxies. The methods for this code are described in Trapp & Furlanetto (2020, in prep.).
 
-This package provides the relative cosmic variance of the UVLF for the following parameter ranges:
+This package provides the relative cosmic variance of the UVLF (1 sigma; linear approximation) for the following parameter ranges:
 
 #### Apparent rest-UV AB magnitude: 22 -> 34
 

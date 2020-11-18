@@ -16,7 +16,7 @@ intOrFloat = (int, np.int8, np.int16, np.int32, np.int64, float, np.float16, np.
 #How many decimal places to round the outputs to
 roundTo = 4
 
-def getcv(mag, area, z, zW=1., appOrAbs='apparent', CMF_method='nu-scaling', interpWarning=1):
+def getcv(mag, area, z, zW=1., appOrAbs='apparent', CMF_method='nu-scaling', interpWarning=1, goFast = 'No'):
     '''
     This function returns relative cosmic variance results. This function is a wrapper function for formatting. The actual calculation happens in singlecv()
 
@@ -47,23 +47,25 @@ def getcv(mag, area, z, zW=1., appOrAbs='apparent', CMF_method='nu-scaling', int
         mag = absToApp(Mabs=mag,z=z)
 
     # Check to make sure the keywords have the correct formats
-    checkVars(mag=mag, area=area, z=z, zW=zW, appOrAbs=appOrAbs, CMF_method=CMF_method, interpWarning=interpWarning)
+    if goFast == 'No':
+        checkVars(mag=mag, area=area, z=z, zW=zW, appOrAbs=appOrAbs, CMF_method=CMF_method, interpWarning=interpWarning)
 
     # Now, if mag is just an int or float, return an int or float
     if isinstance(mag, intOrFloat):
-        return singlecv(mag=mag, area=area, z=z, zW=zW, CMF_method=CMF_method, interpWarning=interpWarning)
+        return singlecv(mag=mag, area=area, z=z, zW=zW, CMF_method=CMF_method, interpWarning=interpWarning, goFast = goFast)
 
     else:  # else, return a list of the cv values
-        answer = [singlecv(mag=a_mag, area=area, z=z, zW=zW, CMF_method=CMF_method, interpWarning=interpWarning) for a_mag in mag]
+        answer = [singlecv(mag=a_mag, area=area, z=z, zW=zW, CMF_method=CMF_method, interpWarning=interpWarning, goFast = goFast) for a_mag in mag]
         if any([a_answer == np.nan for a_answer in answer]):
-            print('\nSome mag values are too bright to estimate cosmic variance. Those values are returned as np.nan objects.')
+            if goFast == 'No':
+                print('\nSome mag values are too bright to estimate cosmic variance. Those values are returned as np.nan objects.')
         return answer
 
     # If we want other variables able to be passed as an array, we need a nest of
     # if statements for the ways to properly call singlecv()
 
 
-def singlecv(mag, area, z, zW, CMF_method, interpWarning):
+def singlecv(mag, area, z, zW, CMF_method, interpWarning, goFast):
     '''
     This function returns relative cosmic variance results by reading in interp files of cosmic variance for parameters near those given, and interpolating between them.
 
@@ -125,7 +127,8 @@ def singlecv(mag, area, z, zW, CMF_method, interpWarning):
                     zWs[i][j][k] = k_zW
                     zW_epcvs[i][j][k] = readcv(mag=i_mag, area=area, z=j_z, zW=k_zW, CMF_method=CMF_method, verbose=False)
         if np.any(np.isnan(zW_epcvs)):  # If any of the epcv values required are np.nan, can't do the interpolation
-            print('Apparent magnitude {:.2f} is too bright for a cosmic variance interpolation estimate at this area, z, and zW'.format(mag))
+            if goFast == 'No':
+                print('Apparent magnitude {:.2f} is too bright for a cosmic variance interpolation estimate at this area, z, and zW'.format(mag))
             return np.nan
 
         # Now we interpolate between constant mag and z, but differing zW epcvs

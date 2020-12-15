@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import os
 from scipy import integrate
+from scipy import interpolate
 
 # A dictionary of the parameters for which I have the exact interp files
 fitParams = dict(mag=np.array([22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34]), z=np.array([5., 6., 7., 8., 9., 10., 11., 12., 13., 14., 15.]), zW=np.array([0.1, 0.15, 0.25, 0.5, 0.75, 1., 1.5, 2.]))
@@ -13,10 +14,11 @@ fitParams = dict(mag=np.array([22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 3
 # This is a tuple of int and float types to check inputs against
 intOrFloat = (int, np.int8, np.int16, np.int32, np.int64, float, np.float16, np.float32, np.float64)
 
-#How many decimal places to round the outputs to
+# How many decimal places to round the outputs to
 roundTo = 4
 
-def getcv(mag, area, z, zW=1., appOrAbs='apparent', CMF_method='nu-scaling', interpWarning=1, goFast = 'No'):
+
+def getcv(mag, area, z, zW=1., appOrAbs='apparent', CMF_method='nu-scaling', interpWarning=1, goFast='No'):
     '''
     This function returns relative cosmic variance results. This function is a wrapper function for formatting. The actual calculation happens in singlecv()
 
@@ -36,15 +38,15 @@ def getcv(mag, area, z, zW=1., appOrAbs='apparent', CMF_method='nu-scaling', int
         The method used for generating the conditional mass function. See Trapp & Furlanetto (2020) for details.
     interpWarning: int or float
         Flag for displaying interpolation warning message. 0 for no message, 1 for short message (Default), 2 for long message
-    
+
     Returns
     -------------------------
     A Python list of cosmic variance values of the same length as the mag input
     '''
 
-    #My code uses apparent magnitudes, so it they are given in absolute magnitudes, convert to apparent first
+    # My code uses apparent magnitudes, so it they are given in absolute magnitudes, convert to apparent first
     if appOrAbs == 'absolute':
-        mag = absToApp(Mabs=mag,z=z)
+        mag = absToApp(Mabs=mag, z=z)
 
     # Check to make sure the keywords have the correct formats
     if goFast == 'No':
@@ -52,10 +54,10 @@ def getcv(mag, area, z, zW=1., appOrAbs='apparent', CMF_method='nu-scaling', int
 
     # Now, if mag is just an int or float, return an int or float
     if isinstance(mag, intOrFloat):
-        return singlecv(mag=mag, area=area, z=z, zW=zW, CMF_method=CMF_method, interpWarning=interpWarning, goFast = goFast)
+        return singlecv(mag=mag, area=area, z=z, zW=zW, CMF_method=CMF_method, interpWarning=interpWarning, goFast=goFast)
 
     else:  # else, return a list of the cv values
-        answer = [singlecv(mag=a_mag, area=area, z=z, zW=zW, CMF_method=CMF_method, interpWarning=interpWarning, goFast = goFast) for a_mag in mag]
+        answer = [singlecv(mag=a_mag, area=area, z=z, zW=zW, CMF_method=CMF_method, interpWarning=interpWarning, goFast=goFast) for a_mag in mag]
         if any([a_answer == np.nan for a_answer in answer]):
             if goFast == 'No':
                 print('\nSome mag values are too bright to estimate cosmic variance. Those values are returned as np.nan objects.')
@@ -93,7 +95,7 @@ def singlecv(mag, area, z, zW, CMF_method, interpWarning, goFast):
     if isExact:
         # Read in the fit files and output the answer
         thecv = readcv(mag=mag, area=area, z=z, zW=zW, CMF_method=CMF_method)
-        return round(thecv,roundTo)
+        return round(thecv, roundTo)
         ##############
     else:  # Gotta do some interpolation
         if interpWarning == 1:
@@ -148,7 +150,7 @@ def singlecv(mag, area, z, zW, CMF_method, interpWarning, goFast):
 
         # Finally, interpolate between magnitudes
         final_epcvs = interpcv(mag, ixs=mags, iys=mag_epcvs)
-        return round(final_epcvs,roundTo)
+        return round(final_epcvs, roundTo)
 
 
 def fitMatches(kwargs, fitParams):
@@ -356,11 +358,11 @@ def checkVars(mag, area, z, zW, appOrAbs, CMF_method, interpWarning):
             raise Exception('zW value outside of zW range: {}'.format(zWRange))
     else:
         raise Exception('zW must be a float or an int')
-    
+
     # Now the appOrAbs variable
     if type(appOrAbs) != str:
         raise Exception('appOrAbs must be \'apparent\' or \'absolute\'')
-        
+
     # Now the CMF_method variable
     if type(CMF_method) != str:
         raise Exception('CMF_method must be \'nu-scaling\' or \'PS-scaling\'')
@@ -387,6 +389,66 @@ def log10Eps(area, Psi, gamma, b):
     return Psi * area**gamma + b
 
 
+def lincv(mass, area, z, zW=1, message='yes'):
+    '''
+    Warning! Use with caution and only if outside the bounds of 'galcv.getcv()'. This function is designed to be used at larger areas and larger masses (brighter galaxies) than galcv.getcv(). In these regions, Poisson noise SHOULD be dominating anyway. For additional questions please comment in the GitHub. This function returns the 1-sigma linear approximation of cosmic variance for haloes of the chosen mass (in solar masses) in the chosen volume at the chosen redshift. Note: you must use your own halo-mass to luminosity relation if you want to connect to the UV luminosity function. Also, this method assumes the survey volume is a sphere. If your survey volume is actually very elongated in some direction, this method will overestimate cosmic variance.
+
+    Parameters
+    -------------------------
+    mass : int or float or array-like
+        Mass of a halo (in units of solar mass)
+    area : int or float
+        Survey area in square arcminutes
+    z : int or float
+        Central redshift (range: 4 - 15)
+    zW : int or float
+        Redshift width (default = 1; range: 0.1 - 2)
+    message : 'yes' or 'no'
+        Whether or not to print the warning message
+
+    Returns
+    -------------------------
+    A NumPy list of cosmic variance values of the same length as the mass input
+    '''
+    if message == 'yes':
+        print('Warning! Use with caution and only if outside the bounds of \'galcv.getcv()\'. This function is designed to be used at larger areas and larger masses (brighter galaxies) than galcv.getcv(). In these regions, Poisson noise SHOULD be dominating anyway. For additional questions please comment in the GitHub. This function returns the 1-sigma linear approximation of cosmic variance for haloes of the chosen mass (in solar masses) in the chosen volume at the chosen redshift. Note: you must use your own halo-mass to luminosity relation if you want to connect to the UV luminosity function. Also, this method assumes the survey volume is a sphere. If your survey volume is actually very elongated in some direction, this method will overestimate cosmic variance.')
+
+    tckS = np.load('sigma0fM_interp.npy', allow_pickle=True)
+    # sigma associated with the halo mass
+    sigM = 10**interpolate.splev(np.log10(mass), tckS) * growthFac(z=z)
+
+    alpha = -1.36
+    beta = -1.14
+
+    # Calculating the Trac linear bias
+    bTR = 1
+    bTR += (alpha / delCrit0(z=z)) * (sigM / 2.54)**alpha / (1 + (sigM / 2.54)**alpha)
+    bTR -= (2 * beta) / (sigM**2 * delCrit0(z=z))
+
+    CRITDENMSOLMPC = 2.7755e11
+    # Calculating the sigma associated with the survey area
+    s_sr = arcmin2ToSr(arcmin2=area)
+    s_Vol = volCM(z1=z - 0.5 * zW, z2=z + 0.5 * zW, Omega=s_sr)
+    s_RegMass = s_Vol * CRITDENMSOLMPC * om0hh
+    sigM_Reg = 10**interpolate.splev(np.log10(s_RegMass), tckS) * growthFac(z=z)
+
+    # The cosmic variance is the survey-wide 1-sigma fluctuation times the bias factor
+    if z < 4 or z > 15:
+        print('\n\n\nAnother Warning! You have chosen a redshift outside the recommended range of 4 - 15. I\'ll still output an answer but be wary.')
+    if area < 3e4:
+        print('\n\n\nAnother Warning! This area is covered in getcv(); you may be able to use that instead.')
+    if zW/z > 0.25:
+        print('\n\n\nAnother Warning! The redshift bin width is getting large compared to the redshift.')
+    if zW > 2:
+        print('\n\n\nAnother Warning! The redshift bin width is getting large. Recommend to keep it below 2')
+    if mass > 1e14:
+        print('\n\n\nAnother Warning! This is a very massive halo! Are you sure that is what you wanted?')
+    if mass < 4e8:
+        print('\n\n\nAnother Warning! This isn\'t a very massive halo... Are you sure that is what you wanted?')
+    return bTR * sigM_Reg
+
+###Now to define various cosmology equations for use in the main methods
+
 def absToApp(Mabs='ER', z='ER'):
     '''
     This function converts absolute magnitude into apparent
@@ -409,6 +471,7 @@ def absToApp(Mabs='ER', z='ER'):
 
     return mapp
 
+
 def lum_dist(z='ER', **kwargs):
     '''
     This function returns the luminosity distance to some redshift
@@ -422,11 +485,16 @@ def lum_dist(z='ER', **kwargs):
 
     return ans
 
-HPARAM = 0.678 #hubble constant today/100
-OMEGA0 = 0.308 #matter fraction today
-OMEGANU = 0.0 #radiation fraction today
-LAMBDA0 = 0.692 #dark energy fraction today
+HPARAM = 0.678  # hubble constant today/100
+OMEGA0 = 0.308  # matter fraction today
+OMEGANU = 0.0  # radiation fraction today
+LAMBDA0 = 0.692  # dark energy fraction today
 SPEEDOFLIGHTMPCPERSEC = 9.71561e-15
+TCMB = 2.726  # CMB temp today
+thetaCMB = TCMB / 2.7
+om0hh = OMEGA0 * HPARAM * HPARAM
+zEquality = 2.50e4 * om0hh * pow(thetaCMB, -4.0) - 1.0
+
 
 def comv_dist(z='ER', **kwargs):
     '''
@@ -452,3 +520,83 @@ def comv_dist(z='ER', **kwargs):
         print('err/value = ' + str(abs(abserr / ans)))
 
     return ans
+
+
+def growthFac(z):
+
+    omZ = omegaZ(z=z)
+    lamZ = lambdaZ(z=z)
+
+    D = ((1.0 + zEquality) / (1.0 + z) * 5.0 * omZ / 2.0 * pow(pow(omZ, 4.0 / 7.0) - lamZ + (1.0 + omZ / 2.0) * (1.0 + lamZ / 70.0), -1.0))
+    D = D / ((1.0 + zEquality) * 5.0 / 2.0 * OMEGA0 * pow(pow(OMEGA0, 4.0 / 7.0) - LAMBDA0 + (1.0 + OMEGA0 / 2.0) * (1.0 + LAMBDA0 / 70.0), -1.0))
+    return D
+
+
+def omegaZ(z):
+
+    z = z + 1.
+    temp = OMEGA0 * z**3.0
+    temp = temp / (temp + LAMBDA0 + (1. - OMEGA0 - LAMBDA0) * z**2)
+
+    return temp
+
+
+def lambdaZ(z):
+    z = z + 1.
+    temp = LAMBDA0
+    temp = temp / (temp + OMEGA0 * z**3 + ((1. - OMEGA0 - LAMBDA0) * z**2))
+    return temp
+
+
+def delCrit0(z):
+
+    t1 = 0.15 * (12 * np.pi)**(2. / 3.)
+    omZ = 0 + omegaZ(z=z)
+
+    if abs(omZ - 1) < 1.0e-5:
+        return t1
+    elif abs(LAMBDA0) < 1.0e-5:
+        t1 = t1 * omZ**0.0185
+        return t1
+    else:
+        t1 = t1 * omZ**0.0055
+        return t1
+
+
+def arcmin2ToSr(arcmin2):
+
+    steradians = arcmin2 * (1. / (60. * 180. / np.pi))**2.
+
+    return steradians
+
+
+def volCM(z1='ER', z2='ER', Omega='ER'):
+
+    if z1 == 0:
+        print('Warning 8623478: You can\'t have z1=0. Pick some small value instead if you must.')
+
+    # First, interpolate the comoving radius between the redshift bounds
+    the_dz = 0.1
+    the_zs = np.arange(z1, z2 + 2 * the_dz, the_dz)
+    the_rcoms = np.zeros(len(the_zs))
+    for i in range(len(the_zs)):
+        the_rcoms[i] = comv_dist(the_zs[i])
+    tckRCOM = interpolate.splrep(the_zs, the_rcoms, k=1, s=0)
+
+    def wrapper_volCM(x):
+        Hnot = 100.0 * HPARAM * 3.24078e-20
+        Hofz = Hnot * np.sqrt(OMEGA0 * (1. + x)**3. + OMEGANU * (1. + x)**4. + LAMBDA0)
+        c_over_Hofz = SPEEDOFLIGHTMPCPERSEC / Hofz
+
+        ansWR = c_over_Hofz
+        ansWR = ansWR * interpolate.splev(x, tckRCOM)**2
+
+        return ansWR
+
+    ans, abserr = integrate.quad(wrapper_volCM, z1, z2, limit=100)
+
+    if abs(abserr / ans) > 1e-4:
+        print('Warning! Volum (comoving) calculation err is high')
+        print('err/value = ' + str(abs(abserr / ans)))
+
+    return ans * Omega

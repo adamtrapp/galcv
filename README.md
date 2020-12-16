@@ -13,6 +13,10 @@ This package returns a linear approximation of the relative cosmic variance of t
 **Note:** Cosmic variance is not available for *all* combinations of these parameters, even within these ranges. This occurs most often at the lowest survey areas and brightest apparent magnitudes. The code will print a warning if this is the case.
 
 ---
+**ANNOUNCEMENT:** The new method `lincv()` is similar to getcv but can be used at wider parameter ranges: Redshift 4 -> 15; Survey Area \(sqr arcmin\) 1e4 -> 1e8, and halo masses higher than 1e13 solar masses (abs mag < -24). However, it is only designed for limited cases and is a function of halo mass, not galaxy luminosity. See below for more details or email me at atrapp@astro.ucla.edu
+---
+
+---
 # Installation and Use
 
 The *simplest* way to install and use `galcv` is through 'pip' in a python environment:
@@ -25,10 +29,13 @@ The package can then be imported in any python environment or in a script using:
 > import galcv
 ```
 
-There is currently one user-facing function: `getcv()`. The rest of the functions are intended for internal use. Example use:
+There are currently two user-facing functions: `getcv()` is the main function; `lincv()` is a new addition that is more approximate but can be used with larger volumes, more massive galaxies, and goes down to z = 4. The rest of the functions are intended for internal use. Example use:
 ```python
 > galcv.getcv(mag=[30,29,28], area=100, z=9)
 > [0.178, 0.208, 0.245]
+
+> galcv.lincv(mass=[1e11,1e12,1e13], area=1e7, z=4)
+> array([0.0004263 , 0.00072753, 0.00142989])
 ```
 
 `getcv()` takes three required parameters (mag, area, z), and has four default parameters (zW, appOrAbs, CMF_method, interpWarning). The following is the docstring for `getcv()` that explains the inputs and output:
@@ -58,6 +65,29 @@ Returns
 A Python list of cosmic variance values of the same length as the mag input
 ```
 
+`lincv()` takes three required parameters (mass, area, z), and has two default parameters (zW, message). **If you want to use `lincv()`: be careful! It is much more approximate and is only appropriate in limited circumstances. Email atrapp@astro.ucla.edu or comment on GitHub to see if this is actually useful for your purposes.** The following is the docstring for `lincv()` that explains the inputs and output:
+
+```
+Warning! Use with caution and only if outside the bounds of 'galcv.getcv()'. This function is designed to be used at larger areas and larger masses (brighter galaxies) than galcv.getcv(). In these regions, Poisson noise SHOULD be dominating anyway. For additional questions please comment in the GitHub. This function returns the 1-sigma linear approximation of cosmic variance for haloes of the chosen mass (in solar masses) in the chosen volume at the chosen redshift. Note: you must use your own halo-mass to luminosity relation if you want to connect to the UV luminosity function. Also, this method assumes the survey volume is a sphere. If your survey volume is actually very elongated in some direction, this method will overestimate cosmic variance.
+
+Parameters
+-------------------------
+mass : int or float or array-like of ints and floats
+    Mass of a halo (in units of solar mass)
+area : int or float
+    Survey area in square arcminutes
+z : int or float
+    Central redshift
+zW : int or float
+    Redshift width (default = 1)
+message : 'yes' or 'no'
+    Whether or not to print the warning message
+
+Returns
+-------------------------
+A NumPy list of cosmic variance values of the same length as the mass input
+```
+    
 ---
 # Alternate Installation and Use Methods
 
@@ -72,7 +102,7 @@ If you would like to use the `getcv()` function in your script (without installi
 ```python
 from __init__ import *
 ```
-- You should then be able to use `getcv()` in that script.
+- You should then be able to use `getcv()` or `lincv()` in that script.
 
 ---
 # Links

@@ -391,7 +391,7 @@ def log10Eps(area, Psi, gamma, b):
 
 def lincv(mass, area, z, zW=1, message='yes'):
     '''
-    Warning! Use with caution and only if outside the bounds of 'galcv.getcv()'. This function is designed to be used at larger areas and larger masses (brighter galaxies) than galcv.getcv(). In these regions, Poisson noise SHOULD be dominating anyway. For additional questions please comment in the GitHub. This function returns the 1-sigma linear approximation of cosmic variance for haloes of the chosen mass (in solar masses) in the chosen volume at the chosen redshift. Note: you must use your own halo-mass to luminosity relation if you want to connect to the UV luminosity function. Also, this method assumes the survey volume is a sphere. If your survey volume is actually very elongated in some direction, this method will overestimate cosmic variance.
+    Warning! Use with caution and only if outside the bounds of 'galcv.getcv()'. This function is designed to be used at larger areas and larger masses (brighter galaxies) than galcv.getcv(). For additional questions see the README on GitHub. This function returns the 1-sigma linear approximation of cosmic variance for haloes of the chosen mass (in solar masses) in the chosen volume at the chosen redshift. Also, this method assumes the survey volume is a sphere. If your survey volume is actually very elongated in some direction, this method will overestimate cosmic variance.
 
     Parameters
     -------------------------
@@ -411,7 +411,7 @@ def lincv(mass, area, z, zW=1, message='yes'):
     A NumPy list of cosmic variance values of the same length as the mass input
     '''
     if message == 'yes':
-        print('Warning! Use with caution and only if outside the bounds of \'galcv.getcv()\'. This function is designed to be used at larger areas and larger masses (brighter galaxies) than galcv.getcv(). In these regions, Poisson noise SHOULD be dominating anyway. For additional questions please comment in the GitHub. This function returns the 1-sigma linear approximation of cosmic variance for haloes of the chosen mass (in solar masses) in the chosen volume at the chosen redshift. Note: you must use your own halo-mass to luminosity relation if you want to connect to the UV luminosity function. Also, this method assumes the survey volume is a sphere. If your survey volume is actually very elongated in some direction, this method will overestimate cosmic variance.')
+        print('Warning! Use with caution and only if outside the bounds of \'galcv.getcv()\'. This function is designed to be used at larger areas and larger masses (brighter galaxies) than galcv.getcv(). For additional questions see the README on GitHub. This function returns the 1-sigma linear approximation of cosmic variance for haloes of the chosen mass (in solar masses) in the chosen volume at the chosen redshift. Also, this method assumes the survey volume is a sphere. If your survey volume is actually very elongated in some direction, this method will overestimate cosmic variance.')
 
     tckS = np.load(os.path.dirname(os.path.abspath(__file__)) + '/sigma0fM_interp.npy', allow_pickle=True)
     # sigma associated with the halo mass

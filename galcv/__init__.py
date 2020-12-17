@@ -413,7 +413,7 @@ def lincv(mass, area, z, zW=1, message='yes'):
     if message == 'yes':
         print('Warning! Use with caution and only if outside the bounds of \'galcv.getcv()\'. This function is designed to be used at larger areas and larger masses (brighter galaxies) than galcv.getcv(). In these regions, Poisson noise SHOULD be dominating anyway. For additional questions please comment in the GitHub. This function returns the 1-sigma linear approximation of cosmic variance for haloes of the chosen mass (in solar masses) in the chosen volume at the chosen redshift. Note: you must use your own halo-mass to luminosity relation if you want to connect to the UV luminosity function. Also, this method assumes the survey volume is a sphere. If your survey volume is actually very elongated in some direction, this method will overestimate cosmic variance.')
 
-    tckS = np.load('sigma0fM_interp.npy', allow_pickle=True)
+    tckS = np.load(os.path.dirname(os.path.abspath(__file__)) + '/sigma0fM_interp.npy', allow_pickle=True)
     # sigma associated with the halo mass
     sigM = 10**interpolate.splev(np.log10(mass), tckS) * growthFac(z=z)
 
@@ -441,10 +441,10 @@ def lincv(mass, area, z, zW=1, message='yes'):
         print('\n\n\nAnother Warning! The redshift bin width is getting large compared to the redshift.')
     if zW > 2:
         print('\n\n\nAnother Warning! The redshift bin width is getting large. Recommend to keep it below 2')
-    if mass > 1e14:
-        print('\n\n\nAnother Warning! This is a very massive halo! Are you sure that is what you wanted?')
-    if mass < 4e8:
-        print('\n\n\nAnother Warning! This isn\'t a very massive halo... Are you sure that is what you wanted?')
+    if np.any(mass > 1e14):
+        print('\n\n\nAnother Warning! There is a very massive halo here! Are you sure that is what you wanted?')
+    if np.any(mass < 4e8):
+        print('\n\n\nAnother Warning! There is a very small-mass halo here... Are you sure that is what you wanted?')
     return bTR * sigM_Reg
 
 ###Now to define various cosmology equations for use in the main methods

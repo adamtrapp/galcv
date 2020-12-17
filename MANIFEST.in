@@ -1,1 +1,1 @@
-include README.md galcv/*.pkl
+include README.md galcv/*.pkl galcv/*.npy
